@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智联招聘招聘数据分析平台 | 答辩演示版</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts-wordcloud@2.1.0/dist/echarts-wordcloud.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: "Microsoft YaHei", "微软雅黑", -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #8b5cf6 100%);
+            min-height: 100vh;
+            padding: 24px 20px;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        h1 { 
+            text-align: center; 
+            color: white; 
+            margin-bottom: 8px;
+            font-size: 32px;
+            font-weight: 800;
+            text-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            letter-spacing: 2px;
+        }
+        .subtitle {
+            text-align: center;
+            color: rgba(255,255,255,0.8);
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .panel {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .panel:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 25px 70px rgba(0,0,0,0.25);
+        }
+        .panel-title {
+            font-size: 17px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #3b82f6;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .filters {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .filter-label { 
+            color: #475569; 
+            font-weight: 600; 
+            font-size: 13px;
+        }
+        select, input {
+            padding: 10px 14px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s ease;
+            background: #f8fafc;
+        }
+        select:focus, input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+        input[type="number"] {
+            width: 100px;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            padding: 10px 22px;
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: inherit;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+        }
+        button:hover { 
+            transform: translateY(-2px); 
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+        }
+        button:active { transform: translateY(0); }
+        button.secondary {
+            background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+            box-shadow: 0 4px 15px rgba(100, 116, 139, 0.3);
+        }
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+        @media (max-width: 900px) {
+            .charts-grid { grid-template-columns: 1fr; }
+        }
+        .chart { height: 360px; width: 100%; }
+        .chart-full { height: 420px; width: 100%; }
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 13px;
+        }
+        th, td {
+            padding: 12px 14px;
+            text-align: left;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        th {
+            background: #f8fafc;
+            font-weight: 700;
+            color: #334155;
+            position: sticky;
+            top: 0;
+        }
+        tr:hover td { background: #f8fafc; }
+        tr:last-child td { border-bottom: none; }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            color: white;
+            font-weight: 600;
+        }
+        .high { background: linear-gradient(135deg, #10b981, #059669); }
+        .mid { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .low { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        .salary-tag {
+            display: inline-block;
+            padding: 3px 10px;
+            background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+            color: #1d4ed8;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .pagination-area {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #f1f5f9;
+        }
+        .pagination-info {
+            color: #64748b;
+            font-size: 13px;
+        }
+        .page-btn-group {
+            display: flex;
+            gap: 8px;
+        }
+        .page-btn {
+            padding: 6px 14px;
+            background: #f1f5f9;
+            color: #475569;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            border: none;
+            box-shadow: none;
+            transition: all 0.2s;
+        }
+        .page-btn:hover:not(:disabled) {
+            background: #3b82f6;
+            color: white;
+            transform: none;
+        }
+        .page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            padding: 16px 20px;
+            border-radius: 12px;
+            color: white;
+        }
+        .stat-value {
+            font-size: 28px;
+            font-weight: 800;
+        }
+        .stat-label {
+            font-size: 13px;
+            opacity: 0.9;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 智联招聘招聘数据分析平台</h1>
+        <p class="subtitle">Python网络爬虫课程答辩演示 | 数据检索可视化面板</p>
+        
+        <div class="panel">
+            <div class="panel-title">🔍 数据库检索筛选</div>
+            <div class="filters">
+                <div class="filter-group">
+                    <label class="filter-label">岗位关键词:</label>
+                    <input type="text" id="keyword" placeholder="模糊搜索,如:数据,分析师,Python..." style="width:220px">
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">城市选择:</label>
+                    <select id="citySelect">
+                        <option value="">全部城市</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">薪资范围:</label>
+                    <div style="display:flex;gap:6px;align-items:center">
+                        <input type="number" id="salaryMin" placeholder="最低" min="0">
+                        <span style="color:#64748b">-</span>
+                        <input type="number" id="salaryMax" placeholder="最高" min="0">
+                    </div>
+                </div>
+                <div class="button-group">
+                    <button onclick="doSearch()">🔍 检索数据</button>
+                    <button class="secondary" onclick="resetFilter()">↺ 重置</button>
+                </div>
+            </div>
+            <div class="stats-row">
+                <div class="stat-card" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8)">
+                    <div class="stat-value" id="statTotal">0</div>
+                    <div class="stat-label">检索到岗位数</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed)">
+                    <div class="stat-value" id="statDb">0</div>
+                    <div class="stat-label">数据库总数据</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #10b981, #059669)">
+                    <div class="stat-value" id="statCity">0</div>
+                    <div class="stat-label">覆盖城市数</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="charts-grid">
+            <div class="panel">
+                <div class="panel-title">📶 城市平均薪资排行柱状图</div>
+                <div id="barChart" class="chart"></div>
+            </div>
+            <div class="panel">
+                <div class="panel-title">🥧 各城市岗位数量饼图</div>
+                <div id="pieChart" class="chart"></div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-title">☁️ 技能关键词词云</div>
+            <div id="wcChart" class="chart-full"></div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-title">📋 检索岗位数据列表</div>
+            <div style="overflow-x: auto;">
+                <table id="jobTable">
+                    <thead>
+                        <tr>
+                            <th width="30%">岗位名称</th>
+                            <th width="12%">薪资范围</th>
+                            <th width="8%">城市</th>
+                            <th width="25%">公司名称</th>
+                            <th width="8%">学历</th>
+                            <th width="10%">经验</th>
+                            <th width="7%">状态</th>
+                        </tr>
+                    </thead>
+                    <tbody id="jobTableBody">
+                    </tbody>
+                </table>
+            </div>
+            <div class="pagination-area">
+                <div class="pagination-info" id="paginationInfo">共 0 条记录</div>
+                <div class="page-btn-group">
+                    <button class="page-btn" id="prevBtn" onclick="prevPage()" disabled>◀ 上一页</button>
+                    <span class="page-btn" style="background:transparent" id="pageIndicator">第 1 页</span>
+                    <button class="page-btn" id="nextBtn" onclick="nextPage()" disabled>下一页 ▶</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let barChart, pieChart, wcChart;
+        let currentPage = 1;
+        let pageSize = 10;
+        let searchParams = {};
+
+        function initCharts() {
+            barChart = echarts.init(document.getElementById('barChart'));
+            pieChart = echarts.init(document.getElementById('pieChart'));
+            wcChart = echarts.init(document.getElementById('wcChart'));
+            loadBarData();
+            loadPieData();
+            loadWCData();
+            loadCities();
+            loadHealthStatus();
+            doSearch();
+            window.addEventListener('resize', () => {
+                barChart.resize();
+                pieChart.resize();
+                wcChart.resize();
+            });
+        }
+
+        function loadHealthStatus() {
+            $.getJSON('/api/health', function(data) {
+                $('#statDb').text(data.db_count || 0);
+            });
+        }
+
+        function loadCities() {
+            $.getJSON('/api/cities', function(cities) {
+                let html = '<option value="">全部城市</option>';
+                cities.forEach(function(c) {
+                    html += '<option value="' + c + '">' + c + '</option>';
+                });
+                $('#citySelect').html(html);
+                $('#statCity').text(cities.length);
+            });
+        }
+
+        function loadBarData() {
+            $.getJSON('/api/salary-bar', function(data) {
+                const option = {
+                    tooltip: { trigger: 'axis' },
+                    grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+                    xAxis: { 
+                        type: 'category', 
+                        data: data.cities,
+                        axisLabel: { color: '#475569', fontSize: 12 }
+                    },
+                    yAxis: { 
+                        type: 'value',
+                        name: '薪资(元)',
+                        nameTextStyle: { color: '#64748b' },
+                        axisLabel: { color: '#64748b', fontSize: 11 },
+                        splitLine: { lineStyle: { color: '#f1f5f9' } }
+                    },
+                    series: [{
+                        type: 'bar',
+                        data: data.salaries,
+                        itemStyle: {
+                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                { offset: 0, color: '#3b82f6' },
+                                { offset: 1, color: '#8b5cf6' }
+                            ]),
+                            borderRadius: [8, 8, 0, 0]
+                        },
+                        barWidth: '50%',
+                        label: { show: true, position: 'top', formatter: '{c} 元', fontSize: 11, color: '#334155' }
+                    }]
+                };
+                barChart.setOption(option);
+            });
+        }
+
+        function loadPieData() {
+            $.getJSON('/api/city-pie', function(data) {
+                const option = {
+                    tooltip: { trigger: 'item' },
+                    legend: { orient: 'vertical', left: 'left', textStyle: { fontSize: 12 } },
+                    series: [{
+                        type: 'pie',
+                        radius: ['40%', '70%'],
+                        avoidLabelOverlap: true,
+                        itemStyle: { borderRadius: 12, borderColor: '#fff', borderWidth: 3 },
+                        label: { show: true, formatter: '{b}: {c} 个\n({d}%)', fontSize: 12, lineHeight: 18 },
+                        emphasis: { label: { show: true, fontSize: 16, fontWeight: 'bold' } },
+                        data: data
+                    }]
+                };
+                pieChart.setOption(option);
+            });
+        }
+
+        function loadWCData() {
+            $.getJSON('/api/skill-wordcloud', function(data) {
+                if (data.length === 0) {
+                    data = [
+                        {name: 'Python', value: 100}, {name: '数据分析', value: 85},
+                        {name: 'Excel', value: 75}, {name: 'SQL', value: 70},
+                        {name: '机器学习', value: 60}, {name: '可视化', value: 50},
+                        {name: '统计学', value: 45}, {name: '建模', value: 40}
+                    ];
+                }
+                const option = {
+                    series: [{
+                        type: 'wordCloud',
+                        gridSize: 10,
+                        sizeRange: [14, 60],
+                        rotationRange: [-45, 45],
+                        shape: 'pentagon',
+                        drawOutOfBound: false,
+                        textStyle: {
+                            fontFamily: 'Microsoft YaHei, sans-serif',
+                            fontWeight: 'bold',
+                            color: function() {
+                                const colors = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4'];
+                                return colors[Math.floor(Math.random() * colors.length)];
+                            }
+                        },
+                        emphasis: {
+                            textStyle: { shadowBlur: 15, shadowColor: 'rgba(0, 0, 0, 0.25)' }
+                        },
+                        data: data
+                    }]
+                };
+                wcChart.setOption(option);
+            });
+        }
+
+        function doSearch() {
+            currentPage = 1;
+            executeSearch();
+        }
+
+        function executeSearch() {
+            searchParams = {
+                keyword: $('#keyword').val() || '',
+                city: $('#citySelect').val() || '',
+                salary_min: $('#salaryMin').val() || '',
+                salary_max: $('#salaryMax').val() || '',
+                page: currentPage,
+                pageSize: pageSize
+            };
+            $.getJSON('/api/job-search', searchParams, function(resp) {
+                renderTable(resp.list);
+                $('#paginationInfo').text('共 ' + resp.total + ' 条记录');
+                $('#statTotal').text(resp.total);
+                updatePagination(resp.total);
+            });
+        }
+
+        function renderTable(jobs) {
+            let html = '';
+            if (!jobs || jobs.length === 0) {
+                html = '<tr><td colspan="7" style="text-align:center;padding:40px;color:#64748b">暂无检索结果，请修改筛选条件</td></tr>';
+            } else {
+                jobs.forEach(function(job) {
+                    let badgeClass = 'mid';
+                    if (job.salary_avg >= 20000) badgeClass = 'high';
+                    else if (job.salary_avg >= 10000) badgeClass = 'mid';
+                    else badgeClass = 'low';
+                    html += '<tr>';
+                    html += '<td><span title="' + (job.job_name || '') + '">' + (job.job_name || '-') + '</span></td>';
+                    html += '<td><span class="salary-tag">' + (job.salary_range || '-') + '</span></td>';
+                    html += '<td>' + (job.city_name || '-') + '</td>';
+                    html += '<td title="' + (job.company_name || '') + '">' + (job.company_name || '-') + '</td>';
+                    html += '<td>' + (job.job_degree || '-') + '</td>';
+                    html += '<td>' + (job.job_experience || '-') + '</td>';
+                    html += '<td><span class="status-badge ' + badgeClass + '">' + (job.salary_avg ? (job.salary_avg/1000).toFixed(1) + 'K' : '正常') + '</span></td>';
+                    html += '</tr>';
+                });
+            }
+            $('#jobTableBody').html(html);
+        }
+
+        function updatePagination(total) {
+            let totalPages = Math.ceil(total / pageSize);
+            $('#prevBtn').prop('disabled', currentPage <= 1);
+            $('#nextBtn').prop('disabled', currentPage >= totalPages);
+            $('#pageIndicator').text('第 ' + currentPage + ' / ' + (totalPages || 1) + ' 页');
+        }
+
+        function prevPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                executeSearch();
+            }
+        }
+
+        function nextPage() {
+            currentPage++;
+            executeSearch();
+        }
+
+        function resetFilter() {
+            $('#keyword').val('');
+            $('#citySelect').val('');
+            $('#salaryMin').val('');
+            $('#salaryMax').val('');
+            doSearch();
+        }
+
+        $(initCharts);
+    </script>
+</body>
+</html>

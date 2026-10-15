@@ -1,0 +1,9 @@
+requests>=2.28.0
+python-dotenv>=1.0.0
+jsonpath-ng>=1.8.0
+pandas>=2.2.0
+jieba>=0.42.0
+wordcloud>=1.9.0
+pymysql>=1.1.0
+lxml>=5.2.0
+Flask>=3.0.0
