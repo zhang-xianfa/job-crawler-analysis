@@ -39,6 +39,19 @@ def build_zhaopin_search_url(keyword, page=1, city_code='763', page_size=90):
     from urllib.parse import quote
     return 'https://sou.zhaopin.com/?p=%d&pageSize=%d&kw=%s&jl=%s' % (page, page_size, quote(keyword), city_code)
 
+def normalize_job_url(href):
+    """把列表页里的各种 href 形式统一成可点开的绝对地址。"""
+    if not href:
+        return ''
+    href = href.strip()
+    if href.startswith('//'):
+        return 'https:' + href
+    if href.startswith('/'):
+        return 'https://www.zhaopin.com' + href
+    if href.startswith('http://') or href.startswith('https://'):
+        return href
+    return ''
+
 def text_clean(parts):
     all_text = ''
     for p in parts:
@@ -77,14 +90,20 @@ def parse_single_job(job_div):
         experience = ''
         education = ''
         
+        job_url = ''
         a_links = job_div.xpath('.//a')
         for a in a_links:
             href = a.get('href', '') or ''
             if 'jobdetail' in href or '/jobs/' in href:
-                m = re.search(r'([A-Z0-9]{10,})', href)
+                job_url = normalize_job_url(href)
+                m = re.search(r'([A-Za-z0-9]{10,})', href)
                 if m:
                     job_id = m.group(1)
                 break
+
+        # 卡片里没给链接时，用岗位 ID 拼详情页地址，保证 job_url 不为空
+        if not job_url and job_id:
+            job_url = 'https://www.zhaopin.com/jobdetail/%s.htm' % job_id
         
         name_a = job_div.xpath('.//a[contains(@class, \"jobinfo__name\")]/text()')
         if name_a:
@@ -136,7 +155,7 @@ def parse_single_job(job_div):
             'experience': experience or 'N/A',
             'job_degree': education or 'N/A',
             'education': education or 'N/A',
-            'job_url': '',
+            'job_url': job_url,
             'skills': '',
             'welfare_list': '',
             'welfare': '',
